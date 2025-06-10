@@ -1,37 +1,65 @@
 # 1. Output all even numbers from 2 to 20
-print(*range(2, 21, 2))
+i = 2
+while i <= 20:
+    print(i)
+    i += 2
 
 # 2. Sum of numbers from 1 to 50 divisible by 3
-print(sum(i for i in range(1, 51) if i % 3 == 0))
+total = 0
+i = 1
+while i <= 50:
+    if i % 3 == 0:
+        total += i
+    i += 1
+print("Sum of numbers divisible by 3:", total)
 
 # 3. Password check until 'admin123' is entered
-while input("Enter password: ") != "admin123": pass
+password = ""
+while password != "admin123":
+    password = input("Enter password: ")
 print("Access granted")
 
-# 1. Print squares of numbers from 1 to 10
-for i in range(1, 11): print(i**2)
+# 4. Print squares of numbers from 1 to 10
+for i in range(1, 11):
+    print(i * i)
 
-# 2. Output length of each word in a list
+# 5. Output length of each word in a list
 words = ["apple", "banana", "cherry", "date", "elderberry"]
-for word in words: print(len(word))
+for word in words:
+    count = 0
+    for letter in word:
+        count += 1
+    print("Length of", word, "is", count)
 
-# 3. Multiplication table from 1 to 5
+# 6. Multiplication table from 1 to 5
 for i in range(1, 6):
-    for j in range(1, 6): print(i*j, end=' ')
+    for j in range(1, 6):
+        print(i * j, end=" ")
     print()
 
-
-
-
-# 1. Sum, max and min of a number list
+# 7. Sum, max and min of a number list
 nums = [5, 2, 8, 1, 9]
-print(f"Sum: {sum(nums)}, Max: {max(nums)}, Min: {min(nums)}")
+total = 0
+maximum = nums[0]
+minimum = nums[0]
+for num in nums:
+    total += num
+    if num > maximum:
+        maximum = num
+    if num < minimum:
+        minimum = num
+print("Sum:", total)
+print("Max:", maximum)
+print("Min:", minimum)
 
-# 2. Replace second element in string list
+# 8. Replace second element in string list
 strings = ["first", "second", "third"]
 strings[1] = "updated"
-print(strings)
+for item in strings:
+    print(item)
 
-# 3. Print names starting with 'A'
+# 9. Print names starting with 'A'
 names = ["Alice", "Bob", "Anna", "Charlie", "Alex"]
-print(*[name for name in names if name.startswith('A')])
+for name in names:
+    if name[0] == "A":
+        print(name)
