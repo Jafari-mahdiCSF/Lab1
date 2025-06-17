@@ -53,3 +53,80 @@ if __name__ == "__main__":
     print(insert_spaces_before_capitals("AddSpaceBeforeCapsNow")) # 'Add Space Before Caps Now'
     print(camel_to_snake("ConvertThisToSnakeCase"))            # 'convert_this_to_snake_case'
 # PRACTICE QUESIONS :
+
+import re
+
+# -------------------------
+# Example 1: Email Extractor
+# -------------------------
+text = """
+Hi there, contact me at john.doe123@gmail.com or at office@company.org. 
+You can also try jane-doe@work.net or something@not-an-email.
+"""
+
+email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|org|net)'
+emails = re.findall(email_pattern, text)
+# re.findall returns only the domain group by default; to get full emails, use non-capturing group:
+email_pattern_fixed = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+(?:\.com|\.org|\.net)'
+emails = re.findall(email_pattern_fixed, text)
+
+print("Example 1 - Extracted Emails:")
+print(emails)
+
+# -------------------------
+# Example 2: Log File Cleaner
+# -------------------------
+log_data = """
+192.168.1.1 - - [12/Jun/2023:10:15:32 +0000] "GET /index.html"
+10.0.0.2 - - [13/Jun/2023:11:20:55 +0000] "POST /submit"
+"""
+
+log_pattern = r'(\d{1,3}(?:\.\d{1,3}){3}) - - \[(\d{2}/[A-Za-z]{3}/\d{4}:\d{2}:\d{2}:\d{2})'
+log_matches = re.findall(log_pattern, log_data)
+
+print("\nExample 2 - Extracted IP and Timestamps:")
+print(log_matches)
+
+# -------------------------
+# Example 3: Password Validator
+# -------------------------
+passwords = ["Welcome123", "abc", "NOLOWERCASE1", "validPass1"]
+
+# At least 8 characters, one lowercase, one uppercase, one digit
+password_pattern = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$'
+valid_passwords = [pwd for pwd in passwords if re.fullmatch(password_pattern, pwd)]
+
+print("\nExample 3 - Valid Passwords:")
+print(valid_passwords)
+
+# -------------------------
+# Example 4: Twitter Hashtag Extractor
+# -------------------------
+tweets = [
+    "Excited about #Python3 🐍 and #AI!",
+    "Loving the vibes of #Kazakhstan 🇰🇿 #travel #fun_times"
+]
+
+hashtag_pattern = r'#\w+'
+all_hashtags = []
+for tweet in tweets:
+    all_hashtags += re.findall(hashtag_pattern, tweet)
+
+print("\nExample 4 - Extracted Hashtags:")
+print(all_hashtags)
+
+# -------------------------
+# Example 5: Phone Number Normalizer
+# -------------------------
+phones = ["+7 701 123 4567", "87011234567", "7-701-123-45-67"]
+normalized_phones = []
+
+for phone in phones:
+    digits = re.findall(r'\d', phone)
+    if len(digits) == 11:
+        normalized = f"+7 ({''.join(digits[1:4])}) {''.join(digits[4:7])}-{''.join(digits[7:9])}-{''.join(digits[9:11])}"
+        normalized_phones.append(normalized)
+
+print("\nExample 5 - Normalized Phone Numbers:")
+print(normalized_phones)
+
