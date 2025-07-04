@@ -184,3 +184,172 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
+#  ////////////////////////////////////////////  SNAKE GAME WITH DATABASE ///////////////////////////////////////////////////
+import pygame
+import random
+import sys
+import time
+import psycopg2
+from config import config
+
+BLUE  = (0, 0, 255)
+RED   = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+
+# ----------------- DB functions ------------------------
+def create_connection():
+    params = config()
+    conn = psycopg2.connect(**params)
+    return conn
+
+def get_or_create_user(username):
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT id FROM users WHERE username=%s", (username,))
+    user = cur.fetchone()
+    if user:
+        user_id = user[0]
+    else:
+        cur.execute("INSERT INTO users (username) VALUES (%s) RETURNING id", (username,))
+        user_id = cur.fetchone()[0]
+        conn.commit()
+    cur.close()
+    conn.close()
+    return user_id
+
+def get_last_user_state(user_id):
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT level, score FROM user_scores WHERE user_id=%s ORDER BY saved_at DESC LIMIT 1", (user_id,))
+    last_state = cur.fetchone()
+    cur.close()
+    conn.close()
+    return last_state if last_state else (1, 0)
+
+def save_user_state(user_id, level, score):
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute("INSERT INTO user_scores (user_id, level, score) VALUES (%s, %s, %s)",
+                (user_id, level, score))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# ----------------- Game setup --------------------------
+pygame.init()
+SCREEN_WIDTH, SCREEN_HEIGHT = 600, 600
+BLOCK_SIZE = 20
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Snake Game with Levels & DB")
+clock = pygame.time.Clock()
+font = pygame.font.SysFont("Verdana", 20)
+
+# ----------------- Username & Load State ---------------
+username = input("Enter your username: ")
+user_id = get_or_create_user(username)
+level, score = get_last_user_state(user_id)
+FPS = 10 + (level - 1) * 2
+
+print(f"Welcome {username}! Last saved state -> Level: {level}, Score: {score}")
+print("Starting in 5 seconds...")
+time.sleep(5)
+
+# ----------------- Snake & Food ------------------------
+snake_pos = [[300, 300], [280, 300], [260, 300]]
+snake_dir = "RIGHT"
+change_to = snake_dir
+
+def spawn_food():
+    while True:
+        food_pos = [random.randrange(0, (SCREEN_WIDTH - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE,
+                   random.randrange(0, (SCREEN_HEIGHT - BLOCK_SIZE) // BLOCK_SIZE) * BLOCK_SIZE]
+        if food_pos not in snake_pos:
+            return food_pos
+
+food_pos = spawn_food()
+
+# ----------------- Main Game Loop ----------------------
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            save_user_state(user_id, level, score)
+            running = False
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP and snake_dir != "DOWN":
+                change_to = "UP"
+            elif event.key == pygame.K_DOWN and snake_dir != "UP":
+                change_to = "DOWN"
+            elif event.key == pygame.K_LEFT and snake_dir != "RIGHT":
+                change_to = "LEFT"
+            elif event.key == pygame.K_RIGHT and snake_dir != "LEFT":
+                change_to = "RIGHT"
+            elif event.key == pygame.K_p:
+                save_user_state(user_id, level, score)
+                print(f"Game paused & saved at Level {level}, Score {score}. Press any key to continue.")
+                paused = True
+                while paused:
+                    for e in pygame.event.get():
+                        if e.type == pygame.KEYDOWN:
+                            paused = False
+
+    snake_dir = change_to
+
+    # Move snake
+    head = snake_pos[0].copy()
+    if snake_dir == "UP":
+        head[1] -= BLOCK_SIZE
+    elif snake_dir == "DOWN":
+        head[1] += BLOCK_SIZE
+    elif snake_dir == "LEFT":
+        head[0] -= BLOCK_SIZE
+    elif snake_dir == "RIGHT":
+        head[0] += BLOCK_SIZE
+
+    snake_pos.insert(0, head)
+
+    # Check if eats food
+    if snake_pos[0] == food_pos:
+        score += 1
+        food_pos = spawn_food()
+        if score % 4 == 0:
+            level += 1
+            FPS += 2
+    else:
+        snake_pos.pop()
+
+    # Check collision with walls
+    if (snake_pos[0][0] < 0 or snake_pos[0][0] >= SCREEN_WIDTH or
+        snake_pos[0][1] < 0 or snake_pos[0][1] >= SCREEN_HEIGHT):
+        save_user_state(user_id, level, score)
+        running = False
+
+    # Check collision with itself
+    if snake_pos[0] in snake_pos[1:]:
+        save_user_state(user_id, level, score)
+        running = False
+
+    # Draw
+    screen.fill(BLACK)
+    for block in snake_pos:
+        pygame.draw.rect(screen, GREEN, pygame.Rect(block[0], block[1], BLOCK_SIZE, BLOCK_SIZE))
+        pygame.draw.rect(screen, BLACK, pygame.Rect(block[0], block[1], BLOCK_SIZE, BLOCK_SIZE), 1)
+    pygame.draw.rect(screen, RED, pygame.Rect(food_pos[0], food_pos[1], BLOCK_SIZE, BLOCK_SIZE))
+    pygame.draw.rect(screen, BLACK, pygame.Rect(food_pos[0], food_pos[1], BLOCK_SIZE, BLOCK_SIZE), 1)
+
+    # Draw score & level
+    score_text = font.render(f"{username} | Score: {score}", True, WHITE)
+    level_text = font.render(f"Level: {level}", True, WHITE)
+    screen.blit(score_text, (10, 10))
+    screen.blit(level_text, (SCREEN_WIDTH - level_text.get_width() - 10, 10))
+
+    pygame.display.flip()
+    clock.tick(FPS)
+
+pygame.quit()
+sys.exit()
+
